@@ -1,34 +1,36 @@
+# Epidemia Monitoramento
+
 Este projeto permite cadastrar, listar, buscar, atualizar, excluir e visualizar registros de casos de doenças em um mapa interativo. Os dados são persistidos em banco MySQL e consumidos pelo frontend via API REST.
 
 O sistema foi pensado para funcionar localmente em `localhost`, com o Spring Boot servindo tanto a API quanto os arquivos estáticos do frontend.
 
-### Funcionalidades
+## Funcionalidades
 
 - Cadastro de novos registros de casos.
 - Listagem de todos os registros salvos.
 - Busca de casos por cidade.
 - Atualização e exclusão de registros.
 - Mapa interativo com Leaflet.
-- Marcadores para 5 cidades da Grande Sao Paulo.
+- Marcadores para 5 cidades da Grande São Paulo.
 - Cores por nível de casos:
-  - Verde: baixo.
-  - Amarelo: médio.
-  - Vermelho: alto.
+  - Verde: baixo (menos de 100 casos).
+  - Amarelo: médio (100 a 499 casos).
+  - Vermelho: alto (500 ou mais casos).
 - Formulário web integrado à API.
 - Tabela com ações de editar e excluir.
 
-### Tecnologias
+## Tecnologias
 
 | Camada | Tecnologias |
 | --- | --- |
-| Backend | Java 17, Spring Boot, Spring Web, Spring Data JPA, Bean Validation |
+| Backend | Java 17, Spring Boot 3, Spring Web, Spring Data JPA, Bean Validation |
 | Banco de dados | MySQL 8 |
 | Frontend | HTML5, CSS3, JavaScript puro, Leaflet |
 | Build | Maven |
 
-### Estrutura do Projeto
+## Estrutura do Projeto
 
-```text
+```
 .
 +-- database/
 |   +-- schema.sql
@@ -36,10 +38,17 @@ O sistema foi pensado para funcionar localmente em `localhost`, com o Spring Boo
 |   +-- main/
 |       +-- java/com/monitoramento/epidemia/
 |       |   +-- controller/
+|       |   |   +-- CasoController.java
 |       |   +-- exception/
+|       |   |   +-- ApiErro.java
+|       |   |   +-- ApiExceptionHandler.java
+|       |   |   +-- RecursoNaoEncontradoException.java
 |       |   +-- model/
+|       |   |   +-- Caso.java
 |       |   +-- repository/
+|       |   |   +-- CasoRepository.java
 |       |   +-- service/
+|       |   |   +-- CasoService.java
 |       |   +-- EpidemiaApplication.java
 |       +-- resources/
 |           +-- static/
@@ -51,100 +60,99 @@ O sistema foi pensado para funcionar localmente em `localhost`, com o Spring Boo
 +-- README.md
 ```
 
-### Modelo de Dados
+## Modelo de Dados
 
 | Campo | Tipo | Descrição |
 | --- | --- | --- |
-| `id` | `Long` | Identificador único do registro |
-| `cidade` | `String` | Nome da cidade |
-| `dataColeta` | `LocalDate` | Data da coleta dos dados |
-| `casos` | `int` | Número de casos registrados |
-| `populacao` | `int` | População da cidade |
+| id | Long | Identificador único (auto-incremento) |
+| cidade | String | Nome da cidade (obrigatório, máx. 100 caracteres) |
+| dataColeta | LocalDate | Data da coleta dos dados (obrigatório) |
+| casos | int | Número de casos registrados (≥ 0) |
+| populacao | int | População da cidade (> 0) |
 
-### Cidades Monitoradas
+## Cidades Monitoradas
 
-- São Paulo
-- Guarulhos
-- Osasco
-- Santo André
-- São Bernardo do Campo
+- São Paulo (população: 11.451.245)
+- Guarulhos (população: 1.291.784)
+- Osasco (população: 728.615)
+- Santo André (população: 748.919)
+- São Bernardo do Campo (população: 810.729)
 
-As coordenadas estão definidas diretamente em `src/main/resources/static/app.js`.
+## Dependências do Spring Initializr
+
+- **Project**: Maven
+- **Language**: Java
+- **Spring Boot**: 3.3.5
+- **Group**: com.monitoramento
+- **Artifact**: epidemia-monitoramento
+- **Package name**: com.monitoramento.epidemia
+- **Packaging**: Jar
+- **Java**: 17
+- **Dependencies**:
+  - Spring Web
+  - Spring Data JPA
+  - MySQL Driver
+  - Validation
+  - Spring Boot DevTools
+
+## Como Configurar o MySQL
+
+1. Instale o MySQL 8 no seu sistema.
+2. Crie um banco de dados chamado `epidemia`:
+   ```sql
+   CREATE DATABASE epidemia CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+3. Execute o script `database/schema.sql` para criar a tabela e inserir dados iniciais.
+4. Configure um usuário com permissões no banco (padrão: `root`/`root`).
+
+## Como Rodar no VS Code
 
 ### Pré-requisitos
 
-- Java 17 ou superior.
-- Maven 3.9 ou superior.
-- MySQL 8 ou superior.
-- VS Code com extensões Java e Spring Boot Extension Pack.
+- Java 17 instalado
+- Maven instalado
+- MySQL 8 rodando localmente
+- VS Code com extensão Java (recomendado)
 
-### Configuração do Banco de Dados
+### Passos
 
-Execute o script SQL para criar o banco `epidemia`, criar a tabela `casos` e inserir dados iniciais:
+1. Clone ou baixe o projeto.
+2. Abra o projeto no VS Code.
+3. Configure as variáveis de ambiente (opcional):
+   - `DB_URL`: URL do banco (padrão: `jdbc:mysql://localhost:3306/epidemia`)
+   - `DB_USER`: Usuário do banco (padrão: `root`)
+   - `DB_PASSWORD`: Senha do banco (padrão: `root`)
+4. Execute o script SQL em `database/schema.sql` no MySQL.
+5. No terminal do VS Code, execute:
+   ```bash
+   mvn spring-boot:run
+   ```
+6. Abra o navegador em `http://localhost:8080`.
 
-```bash
-mysql -u root -p < database/schema.sql
-```
-
-Configuração padrão em `src/main/resources/application.properties`:
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/epidemia
-spring.datasource.username=root
-spring.datasource.password=root
-```
-
-Se o usuário ou senha forem diferentes, altere o arquivo `application.properties` ou use variáveis de ambiente.
-
-No PowerShell:
-
-```powershell
-$env:DB_USER="seu_usuario"
-$env:DB_PASSWORD="sua_senha"
-mvn spring-boot:run
-```
-
-No Bash:
-
-```bash
-DB_USER=seu_usuario DB_PASSWORD=sua_senha mvn spring-boot:run
-```
-
-### Como Executar
-
-1. Clone ou abra este projeto no VS Code.
-2. Inicie o MySQL.
-3. Execute `database/schema.sql`.
-4. Ajuste as credenciais do banco, se necessário.
-5. Rode o backend:
-
-```bash
-mvn spring-boot:run
-```
-
-O Spring Boot serve automaticamente o frontend localizado em `src/main/resources/static`.
-
-### Endpoints da API
+## Endpoints da API
 
 | Método | Endpoint | Descrição |
 | --- | --- | --- |
-| `POST` | `/api/casos` | Cria um novo registro |
-| `GET` | `/api/casos` | Lista todos os registros |
-| `GET` | `/api/casos/{id}` | Busca um registro por ID |
-| `GET` | `/api/casos/cidade/{cidade}` | Busca registros por cidade |
-| `PUT` | `/api/casos/{id}` | Atualiza um registro |
-| `DELETE` | `/api/casos/{id}` | Remove um registro |
+| POST | `/api/casos` | Criar novo registro |
+| GET | `/api/casos` | Listar todos os registros |
+| GET | `/api/casos/{id}` | Buscar por ID |
+| GET | `/api/casos/cidade/{cidade}` | Buscar por cidade |
+| PUT | `/api/casos/{id}` | Atualizar registro |
+| DELETE | `/api/casos/{id}` | Deletar registro |
 
-### Regras de Cores no Mapa
+### Exemplo JSON para POST
 
-| Total de casos | Cor | Nível |
-| --- | --- | --- |
-| Menos de 100 | Verde | Baixo |
-| 100 a 499 | Amarelo | Médio |
-| 500 ou mais | Vermelho | Alto |
+```json
+{
+  "cidade": "São Paulo",
+  "dataColeta": "2026-04-30",
+  "casos": 150,
+  "populacao": 11451245
+}
+```
 
-### Observações
+## Regras de Cores do Mapa
 
-- A API e o banco funcionam localmente.
-- O mapa usa Leaflet com tiles do OpenStreetMap via CDN.
-- Para visualizar o fundo do mapa, é necessário acesso à internet.
+- **Verde** (#1f9d55): Menos de 100 casos totais
+- **Amarelo** (#d5a514): 100 a 499 casos totais
+- **Vermelho** (#d94b3d): 500 ou mais casos totais

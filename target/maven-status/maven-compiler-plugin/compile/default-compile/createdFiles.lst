@@ -1,0 +1,8 @@
+com\monitoramento\epidemia\controller\CasoController.class
+com\monitoramento\epidemia\EpidemiaApplication.class
+com\monitoramento\epidemia\exception\ApiErro.class
+com\monitoramento\epidemia\exception\ApiExceptionHandler.class
+com\monitoramento\epidemia\repository\CasoRepository.class
+com\monitoramento\epidemia\exception\RecursoNaoEncontradoException.class
+com\monitoramento\epidemia\model\Caso.class
+com\monitoramento\epidemia\service\CasoService.class

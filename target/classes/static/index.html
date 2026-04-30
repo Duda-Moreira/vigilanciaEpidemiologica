@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de casos de dengue - Grande São Paulo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIINfQFq7GH1m3t9N2ZVwKyeo9BefgqWZP4="
+          crossorigin="">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <span class="eyebrow">Grande São Paulo</span>
+            <h1>Monitoramento de casos de dengue</h1>
+        </div>
+        <div class="status-pill" id="apiStatus">Conectando API...</div>
+    </header>
+
+    <main class="layout">
+        <section class="map-panel" aria-label="Mapa de casos por cidade">
+            <div id="map"></div>
+            <div class="legend" aria-label="Legenda de risco">
+                <span><i class="legend-dot low"></i>Baixo</span>
+                <span><i class="legend-dot medium"></i>Médio</span>
+                <span><i class="legend-dot high"></i>Alto</span>
+            </div>
+        </section>
+
+        <aside class="side-panel" aria-label="Painel de cadastro e resumo">
+            <section class="summary-box">
+                <span class="section-label">Cidade selecionada</span>
+                <h2 id="cidadeSelecionada">Nenhuma cidade</h2>
+                <p><strong id="casosSelecionados">0</strong> casos registrados</p>
+                <p class="muted" id="ultimaColeta">Clique em um marcador no mapa.</p>
+            </section>
+
+            <section class="form-box">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-label">Registro</span>
+                        <h2 id="formTitle">Cadastrar caso</h2>
+                    </div>
+                    <button type="button" class="ghost-button" id="resetButton">Limpar</button>
+                </div>
+
+                <form id="casoForm">
+                    <input type="hidden" id="casoId">
+
+                    <label for="cidade">Cidade</label>
+                    <select id="cidade" required>
+                        <option value="">Selecione</option>
+                    </select>
+
+                    <label for="dataColeta">Data de coleta</label>
+                    <input type="date" id="dataColeta" required>
+
+                    <label for="casos">Número de casos</label>
+                    <input type="number" id="casos" min="0" required>
+
+                    <label for="populacao">População</label>
+                    <input type="number" id="populacao" min="1" required>
+
+                    <button type="submit" class="primary-button" id="submitButton">Salvar registro</button>
+                </form>
+
+                <p id="formMessage" class="form-message" role="status"></p>
+            </section>
+        </aside>
+    </main>
+
+    <section class="records-panel" aria-label="Registros cadastrados">
+        <div class="section-heading">
+            <div>
+                <span class="section-label">Banco de dados</span>
+                <h2>Registros cadastrados</h2>
+            </div>
+            <button type="button" class="ghost-button" id="refreshButton">Atualizar</button>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cidade</th>
+                        <th>Data</th>
+                        <th>Casos</th>
+                        <th>População</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="registrosTabela"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script src="app.js"></script>
+</body>
+</html>
