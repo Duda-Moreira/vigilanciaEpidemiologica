@@ -13,32 +13,28 @@ const cidades = [
 const estado = {
     mapa: null,
     layerMarcadores: null,
-    registros: []
+    registros: [],
+    tema: localStorage.getItem('theme') || 'light'
 };
 
 const elementos = {
-    apiStatus: document.querySelector('#apiStatus'),
-    cidadeSelecionada: document.querySelector('#cidadeSelecionada'),
-    casosSelecionados: document.querySelector('#casosSelecionados'),
-    ultimaColeta: document.querySelector('#ultimaColeta'),
+    apiStatusDot: document.querySelector('#apiStatusDot'),
+    apiStatusText: document.querySelector('#apiStatusText'),
     casoForm: document.querySelector('#casoForm'),
     casoId: document.querySelector('#casoId'),
     cidade: document.querySelector('#cidade'),
     dataColeta: document.querySelector('#dataColeta'),
     casos: document.querySelector('#casos'),
     populacao: document.querySelector('#populacao'),
-    formTitle: document.querySelector('#formTitle'),
     submitButton: document.querySelector('#submitButton'),
-    resetButton: document.querySelector('#resetButton'),
     refreshButton: document.querySelector('#refreshButton'),
-    reportRefreshButton: document.querySelector('#reportRefreshButton'),
-    exportCsvButton: document.querySelector('#exportCsvButton'),
-    relTotalRegistros: document.querySelector('#relTotalRegistros'),
-    relTotalCasos: document.querySelector('#relTotalCasos'),
-    relCidadeMaiorCasos: document.querySelector('#relCidadeMaiorCasos'),
-    relIncidenciaMedia: document.querySelector('#relIncidenciaMedia'),
     formMessage: document.querySelector('#formMessage'),
-    registrosTabela: document.querySelector('#registrosTabela')
+    registrosTabela: document.querySelector('#registrosTabela'),
+    themeToggle: document.querySelector('#themeToggle'),
+    totalCasos: document.querySelector('#totalCasos'),
+    cidadesMonitoradas: document.querySelector('#cidadesMonitoradas'),
+    ultimaAtualizacao: document.querySelector('#ultimaAtualizacao'),
+    casosHoje: document.querySelector('#casosHoje')
 };
 
 document.addEventListener('DOMContentLoaded', iniciar);
@@ -49,10 +45,36 @@ function ehServidorLocalForaDoSpring() {
 }
 
 function iniciar() {
+    aplicarTema();
     preencherCidades();
     iniciarMapa();
     configurarEventos();
     carregarRegistros();
+    configurarSidebar();
+}
+
+function configurarSidebar() {
+    // Set active nav item
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+        });
+    });
+
+    // Set dashboard as active by default
+    document.querySelector('.nav-item[data-section="dashboard"]').classList.add('active');
+}
+
+function aplicarTema() {
+    document.documentElement.setAttribute('data-theme', estado.tema);
+}
+
+function toggleTema() {
+    estado.tema = estado.tema === 'light' ? 'dark' : 'light';
+    localStorage.setItem('theme', estado.tema);
+    aplicarTema();
 }
 
 function preencherCidades() {
@@ -67,15 +89,33 @@ function preencherCidades() {
 function iniciarMapa() {
     estado.mapa = L.map('map', {
         zoomControl: true,
-        scrollWheelZoom: true
+        scrollWheelZoom: true,
+        zoomAnimation: true,
+        fadeAnimation: true,
+        markerZoomAnimation: true
     }).setView([-23.59, -46.62], 10);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
+        attribution: '&copy; OpenStreetMap contributors'
     }).addTo(estado.mapa);
 
     estado.layerMarcadores = L.layerGroup().addTo(estado.mapa);
+
+    // Add custom CSS for markers
+    const style = document.createElement('style');
+    style.textContent = `
+        .custom-marker {
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .custom-marker:hover {
+            transform: scale(1.2);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+    `;
+    document.head.appendChild(style);
+
     setTimeout(() => {
         if (estado.mapa) {
             estado.mapa.invalidateSize(true);
@@ -85,10 +125,8 @@ function iniciarMapa() {
 
 function configurarEventos() {
     elementos.casoForm.addEventListener('submit', salvarRegistro);
-    elementos.resetButton.addEventListener('click', limparFormulario);
     elementos.refreshButton.addEventListener('click', carregarRegistros);
-    elementos.reportRefreshButton.addEventListener('click', atualizarRelatorios);
-    elementos.exportCsvButton.addEventListener('click', exportarRelatorioCsv);
+    elementos.themeToggle.addEventListener('click', toggleTema);
 
     elementos.cidade.addEventListener('change', () => {
         const cidade = cidades.find((item) => item.nome === elementos.cidade.value);
@@ -99,7 +137,7 @@ function configurarEventos() {
 }
 
 async function carregarRegistros() {
-    definirStatusApi('Conectando API...', '');
+    definirStatusApi('Conectando API...', false);
 
     try {
         const resposta = await fetch(API_URL);
@@ -108,17 +146,17 @@ async function carregarRegistros() {
         }
 
         estado.registros = await resposta.json();
-        definirStatusApi('API conectada', 'ok');
+        definirStatusApi('API conectada', true);
         renderizarMapa();
         renderizarTabela();
-        atualizarRelatorios();
+        atualizarEstatisticas();
     } catch (erro) {
         console.error(erro);
-        definirStatusApi('API indisponível', 'error');
+        definirStatusApi('API indisponível', false);
         mostrarMensagem('Não foi possível carregar a API. Verifique se o backend está rodando.', 'error');
         renderizarMapa();
         renderizarTabela();
-        atualizarRelatorios();
+        atualizarEstatisticas();
     }
 }
 
@@ -134,17 +172,17 @@ function renderizarMapa() {
             ultimaColeta: null
         };
 
-        const cor = obterCorPorCasos(dados.totalCasos);
+        const risco = obterRiscoPorCasos(dados.totalCasos);
         const marcador = L.circleMarker([cidade.lat, cidade.lng], {
             radius: obterRaioPorCasos(dados.totalCasos),
-            color: cor,
-            fillColor: cor,
-            fillOpacity: 0.78,
-            weight: 2
+            color: risco.cor,
+            fillColor: risco.cor,
+            fillOpacity: 0.8,
+            weight: 3,
+            className: 'custom-marker'
         });
 
         marcador.bindPopup(criarPopup(cidade.nome, dados));
-        marcador.on('click', () => selecionarCidade(cidade.nome, dados));
         marcador.addTo(estado.layerMarcadores);
     });
 
@@ -158,7 +196,7 @@ function renderizarTabela() {
 
     if (!estado.registros.length) {
         const linha = document.createElement('tr');
-        linha.innerHTML = '<td colspan="6">Nenhum registro cadastrado.</td>';
+        linha.innerHTML = '<td colspan="6" class="empty-state">Nenhum registro cadastrado.</td>';
         elementos.registrosTabela.appendChild(linha);
         return;
     }
@@ -174,8 +212,18 @@ function renderizarTabela() {
                 <td>${formatarNumero(registro.casos)}</td>
                 <td>${formatarNumero(registro.populacao)}</td>
                 <td>
-                    <button type="button" class="edit-button" data-action="edit" data-id="${registro.id}">Editar</button>
-                    <button type="button" class="danger-button" data-action="delete" data-id="${registro.id}">Excluir</button>
+                    <button type="button" class="edit-btn" data-action="edit" data-id="${registro.id}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Editar
+                    </button>
+                    <button type="button" class="delete-btn" data-action="delete" data-id="${registro.id}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Excluir
+                    </button>
                 </td>
             `;
             elementos.registrosTabela.appendChild(linha);
@@ -184,6 +232,27 @@ function renderizarTabela() {
     elementos.registrosTabela.querySelectorAll('button[data-action]').forEach((botao) => {
         botao.addEventListener('click', tratarAcaoTabela);
     });
+}
+
+function atualizarEstatisticas() {
+    const totalRegistros = estado.registros.length;
+    const totalCasos = estado.registros.reduce((acc, item) => acc + Number(item.casos), 0);
+    const cidadesMonitoradas = new Set(estado.registros.map(r => r.cidade)).size;
+
+    // Última atualização
+    const datas = estado.registros.map(r => new Date(r.dataColeta)).filter(d => !isNaN(d));
+    const ultimaAtualizacao = datas.length > 0 ? new Date(Math.max(...datas)) : null;
+
+    // Casos hoje
+    const hoje = new Date().toISOString().split('T')[0];
+    const casosHoje = estado.registros
+        .filter(r => r.dataColeta === hoje)
+        .reduce((acc, item) => acc + Number(item.casos), 0);
+
+    elementos.totalCasos.textContent = formatarNumero(totalCasos);
+    elementos.cidadesMonitoradas.textContent = cidadesMonitoradas;
+    elementos.ultimaAtualizacao.textContent = ultimaAtualizacao ? formatarData(ultimaAtualizacao.toISOString()) : 'Nunca';
+    elementos.casosHoje.textContent = formatarNumero(casosHoje);
 }
 
 async function salvarRegistro(event) {
@@ -215,12 +284,157 @@ async function salvarRegistro(event) {
         }
 
         limparFormulario();
-        mostrarMensagem('Registro salvo com sucesso.', 'success');
+        mostrarMensagem('Registro salvo com sucesso!', 'success');
         await carregarRegistros();
     } catch (erro) {
         console.error(erro);
         mostrarMensagem(erro.message, 'error');
     }
+}
+
+function tratarAcaoTabela(event) {
+    const id = Number(event.currentTarget.dataset.id);
+    const action = event.currentTarget.dataset.action;
+    const registro = estado.registros.find((item) => item.id === id);
+
+    if (!registro) {
+        return;
+    }
+
+    if (action === 'edit') {
+        preencherFormularioParaEdicao(registro);
+        return;
+    }
+
+    if (action === 'delete') {
+        deletarRegistro(registro);
+    }
+}
+
+function preencherFormularioParaEdicao(registro) {
+    elementos.casoId.value = registro.id;
+    elementos.cidade.value = registro.cidade;
+    elementos.dataColeta.value = registro.dataColeta;
+    elementos.casos.value = registro.casos;
+    elementos.populacao.value = registro.populacao;
+    elementos.submitButton.textContent = 'Atualizar Caso';
+    mostrarMensagem('Editando registro selecionado.', '');
+    elementos.cidade.focus();
+}
+
+async function deletarRegistro(registro) {
+    const confirmado = window.confirm(`Excluir o registro #${registro.id} de ${registro.cidade}?`);
+    if (!confirmado) {
+        return;
+    }
+
+    try {
+        const resposta = await fetch(`${API_URL}/${registro.id}`, { method: 'DELETE' });
+        if (!resposta.ok) {
+            throw new Error(`Erro ${resposta.status} ao excluir.`);
+        }
+
+        mostrarMensagem('Registro excluído com sucesso!', 'success');
+        await carregarRegistros();
+    } catch (erro) {
+        console.error(erro);
+        mostrarMensagem(erro.message, 'error');
+    }
+}
+
+function mostrarMensagem(texto, tipo) {
+    elementos.formMessage.textContent = texto;
+    elementos.formMessage.className = `form-message ${tipo || ''}`.trim();
+}
+
+function definirStatusApi(texto, conectado) {
+    elementos.apiStatusText.textContent = texto;
+    elementos.apiStatusDot.className = `status-dot ${conectado ? '' : 'error'}`;
+}
+
+function agruparPorCidade(registros) {
+    const resumo = new Map();
+
+    registros.forEach((registro) => {
+        const chave = chaveCidade(registro.cidade);
+        const atual = resumo.get(chave) || {
+            cidade: registro.cidade,
+            totalCasos: 0,
+            populacao: registro.populacao,
+            ultimaColeta: null
+        };
+
+        atual.totalCasos += Number(registro.casos);
+        atual.populacao = registro.populacao || atual.populacao;
+
+        if (!atual.ultimaColeta || new Date(registro.dataColeta) > new Date(atual.ultimaColeta)) {
+            atual.ultimaColeta = registro.dataColeta;
+        }
+
+        resumo.set(chave, atual);
+    });
+
+    return resumo;
+}
+
+function criarPopup(nomeCidade, dados) {
+    const incidencia = dados.populacao
+        ? ((dados.totalCasos / dados.populacao) * 100000).toFixed(2)
+        : '0.00';
+
+    return `
+        <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
+            <p class="popup-title">${nomeCidade}</p>
+            <p class="popup-line"><strong>${formatarNumero(dados.totalCasos)}</strong> casos registrados</p>
+            <p class="popup-line">População: ${formatarNumero(dados.populacao)}</p>
+            <p class="popup-line">Incidência: ${incidencia} por 100 mil hab.</p>
+            <p class="popup-line">Última coleta: ${dados.ultimaColeta ? formatarData(dados.ultimaColeta) : 'Nunca'}</p>
+        </div>
+    `;
+}
+
+function obterRiscoPorCasos(casos) {
+    if (casos >= 500) {
+        return { cor: '#ef4444', risco: 'high' }; // Vermelho - Alto
+    }
+
+    if (casos >= 100) {
+        return { cor: '#f59e0b', risco: 'medium' }; // Amarelo - Médio
+    }
+
+    return { cor: '#10b981', risco: 'low' }; // Verde - Baixo
+}
+
+function obterRaioPorCasos(casos) {
+    if (casos >= 500) {
+        return 20;
+    }
+
+    if (casos >= 100) {
+        return 16;
+    }
+
+    return 12;
+}
+
+function chaveCidade(cidade) {
+    return cidade
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+function formatarData(dataIso) {
+    if (!dataIso) {
+        return '-';
+    }
+
+    return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(dataIso));
+}
+
+function formatarNumero(numero) {
+    return new Intl.NumberFormat('pt-BR').format(numero || 0);
 }
 
 function tratarAcaoTabela(event) {
@@ -332,96 +546,4 @@ function exportarRelatorioCsv() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     mostrarMensagem('Relatório CSV gerado com sucesso.', 'success');
-}
-
-function agruparPorCidade(registros) {
-    const resumo = new Map();
-
-    registros.forEach((registro) => {
-        const chave = chaveCidade(registro.cidade);
-        const atual = resumo.get(chave) || {
-            cidade: registro.cidade,
-            totalCasos: 0,
-            populacao: registro.populacao,
-            ultimaColeta: null
-        };
-
-        atual.totalCasos += Number(registro.casos);
-        atual.populacao = registro.populacao || atual.populacao;
-
-        if (!atual.ultimaColeta || new Date(registro.dataColeta) > new Date(atual.ultimaColeta)) {
-            atual.ultimaColeta = registro.dataColeta;
-        }
-
-        resumo.set(chave, atual);
-    });
-
-    return resumo;
-}
-
-function criarPopup(nomeCidade, dados) {
-    const incidencia = dados.populacao
-        ? ((dados.totalCasos / dados.populacao) * 100000).toFixed(2)
-        : '0.00';
-
-    return `
-        <p class="popup-title">${nomeCidade}</p>
-        <p class="popup-line"><strong>${formatarNumero(dados.totalCasos)}</strong> casos</p>
-        <p class="popup-line">População: ${formatarNumero(dados.populacao)}</p>
-        <p class="popup-line">Incidência: ${incidencia} por 100 mil hab.</p>
-    `;
-}
-
-function obterCorPorCasos(casos) {
-    if (casos >= 500) {
-        return '#d94b3d';
-    }
-
-    if (casos >= 100) {
-        return '#d5a514';
-    }
-
-    return '#1f9d55';
-}
-
-function obterRaioPorCasos(casos) {
-    if (casos >= 500) {
-        return 18;
-    }
-
-    if (casos >= 100) {
-        return 14;
-    }
-
-    return 10;
-}
-
-function chaveCidade(cidade) {
-    return cidade
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-}
-
-function formatarData(dataIso) {
-    if (!dataIso) {
-        return '-';
-    }
-
-    return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(dataIso));
-}
-
-function formatarNumero(numero) {
-    return new Intl.NumberFormat('pt-BR').format(numero || 0);
-}
-
-function mostrarMensagem(texto, tipo) {
-    elementos.formMessage.textContent = texto;
-    elementos.formMessage.className = `form-message ${tipo || ''}`.trim();
-}
-
-function definirStatusApi(texto, tipo) {
-    elementos.apiStatus.textContent = texto;
-    elementos.apiStatus.className = `status-pill ${tipo || ''}`.trim();
 }
