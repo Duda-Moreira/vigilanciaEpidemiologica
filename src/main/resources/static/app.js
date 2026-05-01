@@ -22,6 +22,7 @@ const elementos = {
     apiStatusText: document.querySelector('#apiStatusText'),
     casoForm: document.querySelector('#casoForm'),
     casoId: document.querySelector('#casoId'),
+    formTitle: document.querySelector('#formTitle'),
     cidade: document.querySelector('#cidade'),
     dataColeta: document.querySelector('#dataColeta'),
     casos: document.querySelector('#casos'),
@@ -54,7 +55,6 @@ function iniciar() {
 }
 
 function configurarSidebar() {
-    // Set active nav item
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -63,7 +63,6 @@ function configurarSidebar() {
         });
     });
 
-    // Set dashboard as active by default
     document.querySelector('.nav-item[data-section="dashboard"]').classList.add('active');
 }
 
@@ -102,7 +101,6 @@ function iniciarMapa() {
 
     estado.layerMarcadores = L.layerGroup().addTo(estado.mapa);
 
-    // Add custom CSS for markers
     const style = document.createElement('style');
     style.textContent = `
         .custom-marker {
@@ -238,12 +236,8 @@ function atualizarEstatisticas() {
     const totalRegistros = estado.registros.length;
     const totalCasos = estado.registros.reduce((acc, item) => acc + Number(item.casos), 0);
     const cidadesMonitoradas = new Set(estado.registros.map(r => r.cidade)).size;
-
-    // Última atualização
     const datas = estado.registros.map(r => new Date(r.dataColeta)).filter(d => !isNaN(d));
     const ultimaAtualizacao = datas.length > 0 ? new Date(Math.max(...datas)) : null;
-
-    // Casos hoje
     const hoje = new Date().toISOString().split('T')[0];
     const casosHoje = estado.registros
         .filter(r => r.dataColeta === hoje)
@@ -395,14 +389,14 @@ function criarPopup(nomeCidade, dados) {
 
 function obterRiscoPorCasos(casos) {
     if (casos >= 500) {
-        return { cor: '#ef4444', risco: 'high' }; // Vermelho - Alto
+        return { cor: '#ef4444', risco: 'high' }; 
     }
 
     if (casos >= 100) {
-        return { cor: '#f59e0b', risco: 'medium' }; // Amarelo - Médio
+        return { cor: '#f59e0b', risco: 'medium' }; 
     }
 
-    return { cor: '#10b981', risco: 'low' }; // Verde - Baixo
+    return { cor: '#10b981', risco: 'low' }; 
 }
 
 function obterRaioPorCasos(casos) {
