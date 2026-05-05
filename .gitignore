@@ -1,0 +1,71 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+pom.xml.bak
+release.properties
+dependency-reduced-pom.xml
+.flattened-pom.xml
+
+# Java
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+hs_err_pid*
+.mtj.tmp/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.env
+
+# Local development
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Node (if frontend dependencies are added)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Spring Boot
+application-local.properties
+.springBeans
+
+# Generated files
+.factorypath
+.sts4-cache/
+.sts4-cache/classpath.index
+
+# Application data
+h2/
+*.db
+*.sqlite
