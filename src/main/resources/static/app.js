@@ -12,6 +12,7 @@ const cidades = [
 
 const estado = {
     mapa: null,
+    tileLayer: null,
     layerMarcadores: null,
     registros: [],
     tema: localStorage.getItem('theme') || 'light'
@@ -29,6 +30,7 @@ const elementos = {
     populacao: document.querySelector('#populacao'),
     submitButton: document.querySelector('#submitButton'),
     refreshButton: document.querySelector('#refreshButton'),
+    exportButton: document.querySelector('#exportButton'),
     formMessage: document.querySelector('#formMessage'),
     registrosTabela: document.querySelector('#registrosTabela'),
     themeToggle: document.querySelector('#themeToggle'),
@@ -55,25 +57,80 @@ function iniciar() {
 }
 
 function configurarSidebar() {
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
+    const navItems = document.querySelectorAll('.nav-item[data-section]');
+    const sections = Array.from(navItems)
+        .map((item) => document.getElementById(item.dataset.section))
+        .filter(Boolean);
+
+    const ativarNav = (item) => {
+        navItems.forEach((nav) => nav.classList.toggle('active', nav === item));
+    };
+
+    navItems.forEach((item) => {
         item.addEventListener('click', (e) => {
-            navItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
+            e.preventDefault();
+            const target = document.getElementById(item.dataset.section);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            ativarNav(item);
         });
     });
 
-    document.querySelector('.nav-item[data-section="dashboard"]').classList.add('active');
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const targetNav = document.querySelector(`.nav-item[data-section="${entry.target.id}"]`);
+                    if (targetNav) {
+                        ativarNav(targetNav);
+                    }
+                }
+            });
+        },
+        { rootMargin: '-30% 0px -55% 0px', threshold: 0.2 }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    ativarNav(document.querySelector('.nav-item[data-section="dashboard"]'));
 }
 
 function aplicarTema() {
     document.documentElement.setAttribute('data-theme', estado.tema);
+    atualizarMapaTiles();
 }
 
 function toggleTema() {
     estado.tema = estado.tema === 'light' ? 'dark' : 'light';
     localStorage.setItem('theme', estado.tema);
     aplicarTema();
+}
+
+function obterUrlTileLayer() {
+    return estado.tema === 'dark'
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+}
+
+function atualizarMapaTiles() {
+    if (!estado.mapa) {
+        return;
+    }
+
+    if (estado.tileLayer) {
+        estado.mapa.removeLayer(estado.tileLayer);
+    }
+
+    estado.tileLayer = L.tileLayer(obterUrlTileLayer(), {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors' + (estado.tema === 'dark' ? ' &copy; CARTO' : '')
+    }).addTo(estado.mapa);
+
+    setTimeout(() => {
+        if (estado.mapa) {
+            estado.mapa.invalidateSize(true);
+        }
+    }, 50);
 }
 
 function preencherCidades() {
@@ -94,9 +151,9 @@ function iniciarMapa() {
         markerZoomAnimation: true
     }).setView([-23.59, -46.62], 10);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    estado.tileLayer = L.tileLayer(obterUrlTileLayer(), {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
+        attribution: '&copy; OpenStreetMap contributors' + (estado.tema === 'dark' ? ' &copy; CARTO' : '')
     }).addTo(estado.mapa);
 
     estado.layerMarcadores = L.layerGroup().addTo(estado.mapa);
@@ -104,12 +161,13 @@ function iniciarMapa() {
     const style = document.createElement('style');
     style.textContent = `
         .custom-marker {
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
+            transition: fill-opacity 0.2s ease, stroke 0.2s ease, filter 0.2s ease;
+            cursor: pointer;
         }
         .custom-marker:hover {
-            transform: scale(1.2);
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+            fill-opacity: 1;
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.25));
         }
     `;
     document.head.appendChild(style);
@@ -132,6 +190,8 @@ function configurarEventos() {
             elementos.populacao.value = cidade.populacao;
         }
     });
+
+    elementos.exportButton?.addEventListener('click', exportarRelatorioPdf);
 }
 
 async function carregarRegistros() {
@@ -431,56 +491,6 @@ function formatarNumero(numero) {
     return new Intl.NumberFormat('pt-BR').format(numero || 0);
 }
 
-function tratarAcaoTabela(event) {
-    const id = Number(event.currentTarget.dataset.id);
-    const action = event.currentTarget.dataset.action;
-    const registro = estado.registros.find((item) => item.id === id);
-
-    if (!registro) {
-        return;
-    }
-
-    if (action === 'edit') {
-        preencherFormularioParaEdicao(registro);
-        return;
-    }
-
-    if (action === 'delete') {
-        deletarRegistro(registro);
-    }
-}
-
-function preencherFormularioParaEdicao(registro) {
-    elementos.casoId.value = registro.id;
-    elementos.cidade.value = registro.cidade;
-    elementos.dataColeta.value = registro.dataColeta;
-    elementos.casos.value = registro.casos;
-    elementos.populacao.value = registro.populacao;
-    elementos.formTitle.textContent = `Editar registro #${registro.id}`;
-    elementos.submitButton.textContent = 'Atualizar registro';
-    mostrarMensagem('Editando registro selecionado.', '');
-    elementos.cidade.focus();
-}
-
-async function deletarRegistro(registro) {
-    const confirmado = window.confirm(`Excluir o registro #${registro.id} de ${registro.cidade}?`);
-    if (!confirmado) {
-        return;
-    }
-
-    try {
-        const resposta = await fetch(`${API_URL}/${registro.id}`, { method: 'DELETE' });
-        if (!resposta.ok) {
-            throw new Error(`Erro ${resposta.status} ao excluir.`);
-        }
-
-        mostrarMensagem('Registro excluído com sucesso.', 'success');
-        await carregarRegistros();
-    } catch (erro) {
-        console.error(erro);
-        mostrarMensagem(erro.message, 'error');
-    }
-}
 
 function limparFormulario() {
     elementos.casoForm.reset();
@@ -514,30 +524,61 @@ function atualizarRelatorios() {
     elementos.relIncidenciaMedia.textContent = incidenciaMedia;
 }
 
-function exportarRelatorioCsv() {
+function exportarRelatorioPdf() {
     if (!estado.registros.length) {
         mostrarMensagem('Não há dados para exportar.', 'error');
         return;
     }
 
-    const headers = ['ID', 'Cidade', 'Data de coleta', 'Casos', 'População'];
-    const linhas = estado.registros.map((registro) => [
-        registro.id,
+    const headers = [['ID', 'Cidade', 'Data de coleta', 'Casos', 'População']];
+    const rows = estado.registros.map((registro) => [
+        String(registro.id),
         registro.cidade,
-        registro.dataColeta,
-        registro.casos,
-        registro.populacao
-    ].map((valor) => `"${String(valor).replace(/"/g, '""')}"`).join(';'));
+        formatarData(registro.dataColeta),
+        formatarNumero(registro.casos),
+        formatarNumero(registro.populacao)
+    ]);
 
-    const csv = '\uFEFF' + [headers.map((cabecalho) => `"${cabecalho}"`).join(';'), ...linhas].join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `relatorio-casos-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    mostrarMensagem('Relatório CSV gerado com sucesso.', 'success');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Relatório de Casos Epidemiológicos', 40, 44);
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor('#6b7280');
+    doc.text(`Gerado em: ${formatarData(new Date().toISOString())}`, 40, 60);
+
+    doc.autoTable({
+        startY: 72,
+        head: headers,
+        body: rows,
+        theme: 'striped',
+        headStyles: {
+            fillColor: '#4f46e5',
+            textColor: '#ffffff',
+            fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+            fillColor: '#f8fafc'
+        },
+        styles: {
+            font: 'helvetica',
+            fontSize: 10,
+            cellPadding: 6,
+            textColor: '#111827'
+        },
+        margin: { left: 40, right: 40 },
+        tableLineColor: '#e5e7eb',
+        tableLineWidth: 0.5,
+        didDrawPage: (data) => {
+            doc.setDrawColor('#dbeafe');
+            doc.line(40, 30, doc.internal.pageSize.width - 40, 30);
+        }
+    });
+
+    doc.save(`relatorio-casos-${new Date().toISOString().slice(0, 10)}.pdf`);
+    mostrarMensagem('Relatório PDF gerado com sucesso.', 'success');
 }

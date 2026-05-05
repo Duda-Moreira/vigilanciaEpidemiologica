@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <!-- Sidebar -->
@@ -149,10 +151,17 @@
                 </div>
             </div>
 
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
+            <!-- Relatórios -->
+            <section class="stats-section" id="relatorios">
+                <div class="section-header">
+                    <h2>Relatórios</h2>
+                    <button class="export-btn" id="exportButton">
+                        Exportar PDF
+                    </button>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                         </svg>
@@ -202,7 +211,7 @@
             </div>
 
             <!-- Records Table -->
-            <div class="records-section">
+            <div class="records-section" id="registros">
                 <div class="section-header">
                     <h2>Registros Cadastrados</h2>
                     <button class="refresh-btn" id="refreshButton">
@@ -233,6 +242,22 @@
                     </table>
                 </div>
             </div>
+
+            <section class="info-section" id="informacoes">
+                <div class="section-header">
+                    <h2>Informações</h2>
+                </div>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3>Fluxo inteligente</h3>
+                        <p>Use o menu à esquerda para navegar rapidamente entre o dashboard, o mapa e os registros.</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Modo escuro otimizado</h3>
+                        <p>O tema escuro adapta o mapa, popups e cards para melhorar a leitura no ambiente noturno.</p>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 

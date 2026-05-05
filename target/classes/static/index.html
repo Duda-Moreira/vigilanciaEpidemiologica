@@ -3,102 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoramento de casos de dengue - Grande São Paulo</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIINfQFq7GH1m3t9N2ZVwKyeo9BefgqWZP4="
-          crossorigin="">
+    <title>Monitoramento Epidemiológico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    <header class="topbar">
-        <div>
-            <span class="eyebrow">Grande São Paulo</span>
-            <h1>Monitoramento de casos de dengue</h1>
-        </div>
-        <div class="status-pill" id="apiStatus">Conectando API...</div>
-    </header>
-
-    <main class="layout">
-        <section class="map-panel" aria-label="Mapa de casos por cidade">
-            <div id="map"></div>
-            <div class="legend" aria-label="Legenda de risco">
-                <span><i class="legend-dot low"></i>Baixo</span>
-                <span><i class="legend-dot medium"></i>Médio</span>
-                <span><i class="legend-dot high"></i>Alto</span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
             </div>
-        </section>
+            <h1 class="sidebar-title">Monitoramento Epidemiológico</h1>
+        </div>
 
-        <aside class="side-panel" aria-label="Painel de cadastro e resumo">
-            <section class="summary-box">
-                <span class="section-label">Cidade selecionada</span>
-                <h2 id="cidadeSelecionada">Nenhuma cidade</h2>
-                <p><strong id="casosSelecionados">0</strong> casos registrados</p>
-                <p class="muted" id="ultimaColeta">Clique em um marcador no mapa.</p>
-            </section>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-section="dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                Dashboard
+            </a>
+            <a href="#" class="nav-item" data-section="mapa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                </svg>
+                Mapa
+            </a>
+            <a href="#" class="nav-item" data-section="registros">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Registros
+            </a>
+            <a href="#" class="nav-item" data-section="relatorios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Relatórios
+            </a>
+            <a href="#" class="nav-item" data-section="informacoes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Informações
+            </a>
+        </nav>
+    </aside>
 
-            <section class="form-box">
-                <div class="section-heading">
-                    <div>
-                        <span class="section-label">Registro</span>
-                        <h2 id="formTitle">Cadastrar caso</h2>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-right">
+                <div class="api-status">
+                    <div class="status-dot" id="apiStatusDot"></div>
+                    <span id="apiStatusText">API conectada</span>
+                </div>
+                <button class="theme-toggle" id="themeToggle">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <main class="dashboard">
+            <!-- Map and Form Row -->
+            <div class="dashboard-row">
+                <!-- Map Container -->
+                <div class="map-container">
+                    <div id="map"></div>
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <div class="legend-dot low"></div>
+                            <span>Baixo Risco</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot medium"></div>
+                            <span>Médio Risco</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot high"></div>
+                            <span>Alto Risco</span>
+                        </div>
                     </div>
-                    <button type="button" class="ghost-button" id="resetButton">Limpar</button>
                 </div>
 
-                <form id="casoForm">
-                    <input type="hidden" id="casoId">
+                <!-- Registration Card -->
+                <div class="registration-card">
+                    <div class="card-header">
+                        <h2 id="formTitle">Cadastrar Novo Caso</h2>
+                    </div>
+                    <form id="casoForm" class="registration-form">
+                        <input type="hidden" id="casoId">
 
-                    <label for="cidade">Cidade</label>
-                    <select id="cidade" required>
-                        <option value="">Selecione</option>
-                    </select>
+                        <div class="form-group">
+                            <label for="cidade">Cidade</label>
+                            <select id="cidade" required>
+                                <option value="">Selecione uma cidade</option>
+                            </select>
+                        </div>
 
-                    <label for="dataColeta">Data de coleta</label>
-                    <input type="date" id="dataColeta" required>
+                        <div class="form-group">
+                            <label for="dataColeta">Data da Coleta</label>
+                            <input type="date" id="dataColeta" required>
+                        </div>
 
-                    <label for="casos">Número de casos</label>
-                    <input type="number" id="casos" min="0" required>
+                        <div class="form-group">
+                            <label for="casos">Casos Registrados</label>
+                            <input type="number" id="casos" min="0" required>
+                        </div>
 
-                    <label for="populacao">População</label>
-                    <input type="number" id="populacao" min="1" required>
+                        <div class="form-group">
+                            <label for="populacao">População Estimada</label>
+                            <input type="number" id="populacao" min="1" required>
+                        </div>
 
-                    <button type="submit" class="primary-button" id="submitButton">Salvar registro</button>
-                </form>
+                        <button type="submit" class="submit-btn" id="submitButton">
+                            Cadastrar Caso
+                        </button>
 
-                <p id="formMessage" class="form-message" role="status"></p>
-            </section>
-        </aside>
-    </main>
-
-    <section class="records-panel" aria-label="Registros cadastrados">
-        <div class="section-heading">
-            <div>
-                <span class="section-label">Banco de dados</span>
-                <h2>Registros cadastrados</h2>
+                        <div id="formMessage" class="form-message"></div>
+                    </form>
+                </div>
             </div>
-            <button type="button" class="ghost-button" id="refreshButton">Atualizar</button>
-        </div>
 
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Cidade</th>
-                        <th>Data</th>
-                        <th>Casos</th>
-                        <th>População</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="registrosTabela"></tbody>
-            </table>
-        </div>
-    </section>
+            <!-- Relatórios -->
+            <section class="stats-section" id="relatorios">
+                <div class="section-header">
+                    <h2>Relatórios</h2>
+                    <button class="export-btn" id="exportButton">
+                        Exportar PDF
+                    </button>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalCasos">0</h3>
+                        <p>Total de Casos</p>
+                    </div>
+                </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="cidadesMonitoradas">0</h3>
+                        <p>Cidades Monitoradas</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="ultimaAtualizacao">-</h3>
+                        <p>Última Atualização</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="casosHoje">0</h3>
+                        <p>Casos Hoje</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Records Table -->
+            <div class="records-section" id="registros">
+                <div class="section-header">
+                    <h2>Registros Cadastrados</h2>
+                    <button class="refresh-btn" id="refreshButton">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Atualizar
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cidade</th>
+                                <th>Data</th>
+                                <th>Casos</th>
+                                <th>População</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registrosTabela">
+                            <tr>
+                                <td colspan="6" class="empty-state">Carregando registros...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <section class="info-section" id="informacoes">
+                <div class="section-header">
+                    <h2>Informações</h2>
+                </div>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3>Fluxo inteligente</h3>
+                        <p>Use o menu à esquerda para navegar rapidamente entre o dashboard, o mapa e os registros.</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Modo escuro otimizado</h3>
+                        <p>O tema escuro adapta o mapa, popups e cards para melhorar a leitura no ambiente noturno.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

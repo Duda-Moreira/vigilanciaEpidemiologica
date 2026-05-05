@@ -46,11 +46,11 @@ O backend é um aplicativo Spring Boot que expõe a API REST em `/api/casos`. O 
 - Santo André
 - São Bernardo do Campo
 
-## Configuração do MySQL
+## Configuração do banco de dados
 
-O projeto usa MySQL e aceita configuração por variáveis de ambiente.
+O projeto usa H2 em memória por padrão para desenvolvimento local. Se quiser conectar ao MySQL, defina as variáveis de ambiente abaixo.
 
-Valores padrão em `application.properties`:
+Valores opcionais em `application.properties`:
 
 ```properties
 DB_URL=jdbc:mysql://localhost:3306/epidemia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo&useUnicode=true&characterEncoding=UTF-8
@@ -58,7 +58,7 @@ DB_USER=root
 DB_PASSWORD=root
 ```
 
-### Criar o banco
+### Criar o banco MySQL
 
 Execute o script em `database/schema.sql` ou crie o banco manualmente:
 
@@ -71,20 +71,34 @@ CREATE DATABASE epidemia CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ### Pré-requisitos
 
 - Java 17
-- Maven
-- MySQL 8
+- Maven 3 ou superior
 
-### Passos
+> A API já pode rodar localmente usando H2 em memória sem MySQL.
 
-1. Abra o projeto no VS Code ou terminal.
-2. Ajuste a conexão do MySQL se necessário.
-3. Execute:
+### Passos no Windows CMD
 
-```bash
-mvn spring-boot:run
+1. Abra o Prompt de Comando (CMD).
+2. Navegue até a pasta do projeto:
+
+```cmd
+cd C:\Users\force\OneDrive\Documentos\GitHub\vigilanciaEpidemiologica
 ```
 
-4. Acesse:
+3. Se quiser usar MySQL em vez de H2, defina as variáveis de ambiente antes de iniciar (opcional):
+
+```cmd
+set DB_URL=jdbc:mysql://localhost:3306/epidemia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo&useUnicode=true&characterEncoding=UTF-8
+set DB_USER=root
+set DB_PASSWORD=root
+```
+
+4. Execute o backend:
+
+```cmd
+mvn -DskipTests spring-boot:run
+```
+
+5. Abra no navegador:
 
 ```text
 http://localhost:8080
@@ -115,4 +129,5 @@ http://localhost:8080
 ## Observações
 
 - O frontend está em `src/main/resources/static` e é servido automaticamente pelo Spring Boot.
+- A API agora pode rodar localmente com H2 em memória por padrão. Use MySQL apenas se quiser conectar ao banco externo configurando `DB_URL`, `DB_USER` e `DB_PASSWORD`.
 - Caso use outra porta, ajuste o navegador para o valor configurado em `server.port`.
