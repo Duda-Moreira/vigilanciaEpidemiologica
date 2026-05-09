@@ -1,4 +1,4 @@
-const API_URL = window.location.protocol === 'file:' || ehServidorLocalForaDoSpring()
+﻿const API_URL = window.location.protocol === 'file:' || ehServidorLocalForaDoSpring()
     ? 'http://localhost:8080/api/casos'
     : '/api/casos';
 
@@ -38,10 +38,23 @@ const elementos = {
     relCidadeMaiorCasos: document.querySelector('#relCidadeMaiorCasos'),
     relIncidenciaMedia: document.querySelector('#relIncidenciaMedia'),
     formMessage: document.querySelector('#formMessage'),
-    registrosTabela: document.querySelector('#registrosTabela')
+    registrosTabela: document.querySelector('#registrosTabela'),
+    totalCasos: document.querySelector('#totalCasos'),
+    cidadesMonitoradas: document.querySelector('#cidadesMonitoradas'),
+    ultimaAtualizacao: document.querySelector('#ultimaAtualizacao'),
+    casosHoje: document.querySelector('#casosHoje')
 };
 
-document.addEventListener('DOMContentLoaded', iniciar);
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado');
+    // Aguardar o Leaflet carregar
+    if (typeof L === 'undefined') {
+        console.log('Leaflet não carregado, tentando novamente em 100ms...');
+        setTimeout(iniciar, 100);
+    } else {
+        iniciar();
+    }
+});
 
 function ehServidorLocalForaDoSpring() {
     const hostLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
@@ -102,9 +115,74 @@ async function carregarRegistros() {
     definirStatusApi('Conectando API...', '');
 
     try {
-        const resposta = await fetch(API_URL);
-        if (!resposta.ok) {
-            throw new Error(`Erro ${resposta.status} ao buscar registros.`);
+        const response = await fetch(API_URL);
+        if (!response.ok) {
+            throw new Error('Erro HTTP: ' + response.status);
+        }
+        estado.registros = await response.json();
+        atualizarInterface();
+        atualizarMarcadores();
+    } catch (error) {
+        console.error('Erro ao carregar registros:', error);
+        mostrarMensagem('Erro ao carregar registros. Verifique se o backend está rodando.', 'error');
+    }
+}
+
+function atualizarInterface() {
+    const totalCasos = estado.registros.reduce((sum, reg) => sum + reg.casos, 0);
+    const cidadesMonitoradas = new Set(estado.registros.map(reg => reg.cidade)).size;
+    const hoje = new Date().toISOString().split('T')[0];
+    const casosHoje = estado.registros.filter(reg => reg.dataColeta === hoje).reduce((sum, reg) => sum + reg.casos, 0);
+    const ultimaAtualizacao = estado.registros.length > 0 ? new Date(Math.max(...estado.registros.map(reg => new Date(reg.dataColeta)))).toLocaleDateString('pt-BR') : '-';
+
+    elementos.totalCasos.textContent = totalCasos;
+    elementos.cidadesMonitoradas.textContent = cidadesMonitoradas;
+    elementos.casosHoje.textContent = casosHoje;
+    elementos.ultimaAtualizacao.textContent = ultimaAtualizacao;
+
+    atualizarTabela();
+}
+
+function atualizarTabela() {
+    const tbody = elementos.registrosTabela.querySelector('tbody') || elementos.registrosTabela;
+    tbody.innerHTML = '';
+
+    estado.registros.forEach((registro) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${registro.id}</td>
+            <td>${registro.cidade}</td>
+            <td>${new Date(registro.dataColeta).toLocaleDateString('pt-BR')}</td>
+            <td>${registro.casos}</td>
+            <td>${registro.populacao}</td>
+            <td>
+                <button onclick="editarRegistro(${registro.id})">Editar</button>
+                <button onclick="deletarRegistro(${registro.id})">Deletar</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function atualizarMarcadores() {
+    if (!estado.layerMarcadores) return;
+
+    estado.layerMarcadores.clearLayers();
+
+    const marcadoresPorCidade = {};
+
+    estado.registros.forEach((registro) => {
+        const cidade = cidades.find((c) => c.nome === registro.cidade);
+        if (!cidade) return;
+
+        if (!marcadoresPorCidade[registro.cidade]) {
+            marcadoresPorCidade[registro.cidade] = {
+                lat: cidade.lat,
+                lng: cidade.lng,
+                casos: 0,
+                populacao: cidade.populacao,
+                registros: []
+            };
         }
 
         estado.registros = await resposta.json();
@@ -148,10 +226,10 @@ function renderizarMapa() {
         marcador.addTo(estado.layerMarcadores);
     });
 
-    if (estado.mapa) {
-        setTimeout(() => estado.mapa.invalidateSize(true), 100);
-    }
-}
+    Object.values(marcadoresPorCidade).forEach((dados) => {
+        const risco = calcularRisco(dados.casos, dados.populacao);
+        const cor = obterCorRisco(risco);
+    });
 
 function renderizarTabela() {
     elementos.registrosTabela.innerHTML = '';
@@ -181,39 +259,48 @@ function renderizarTabela() {
             elementos.registrosTabela.appendChild(linha);
         });
 
-    elementos.registrosTabela.querySelectorAll('button[data-action]').forEach((botao) => {
-        botao.addEventListener('click', tratarAcaoTabela);
-    });
-}
+        const popupContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 200px;">
+                <h3 style="margin: 0 0 8px 0; color: #333;">${dados.registros[0].cidade}</h3>
+                <p style="margin: 4px 0;"><strong>Casos totais:</strong> ${dados.casos}</p>
+                <p style="margin: 4px 0;"><strong>População:</strong> ${dados.populacao.toLocaleString()}</p>
+                <p style="margin: 4px 0;"><strong>Risco:</strong> ${risco}</p>
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Última atualização: ${new Date(Math.max(...dados.registros.map(r => new Date(r.dataColeta)))).toLocaleDateString('pt-BR')}</p>
+            </div>
+        `;
+
+        L.marker([dados.lat, dados.lng], { icon: marker })
+            .bindPopup(popupContent)
+            .addTo(estado.layerMarcadores);
+    };
+};
 
 async function salvarRegistro(event) {
     event.preventDefault();
 
-    const id = elementos.casoId.value;
-    const payload = {
+    const registro = {
         cidade: elementos.cidade.value,
         dataColeta: elementos.dataColeta.value,
-        casos: Number(elementos.casos.value),
-        populacao: Number(elementos.populacao.value)
+        populacao: parseInt(elementos.populacao.value),
+        casos: parseInt(elementos.casos.value)
     };
 
+    const id = elementos.casoId.value;
+    const method = id ? 'PUT' : 'POST';
     const url = id ? `${API_URL}/${id}` : API_URL;
-    const metodo = id ? 'PUT' : 'POST';
 
     try {
-        const resposta = await fetch(url, {
-            method: metodo,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(registro)
         });
 
-        if (!resposta.ok) {
-            const erro = await resposta.json().catch(() => null);
-            throw new Error(erro?.mensagem || `Erro ${resposta.status} ao salvar.`);
+        if (!response.ok) {
+            throw new Error('Erro HTTP: ' + response.status);
         }
 
+        mostrarMensagem(id ? 'Registro atualizado com sucesso!' : 'Registro salvo com sucesso!', 'success');
         limparFormulario();
         mostrarMensagem('Registro salvo com sucesso.', 'success');
         await carregarRegistros();
@@ -223,30 +310,13 @@ async function salvarRegistro(event) {
     }
 }
 
-function tratarAcaoTabela(event) {
-    const id = Number(event.currentTarget.dataset.id);
-    const action = event.currentTarget.dataset.action;
-    const registro = estado.registros.find((item) => item.id === id);
+function editarRegistro(id) {
+    const registro = estado.registros.find(r => r.id === id);
+    if (!registro) return;
 
-    if (!registro) {
-        return;
-    }
-
-    if (action === 'edit') {
-        preencherFormularioParaEdicao(registro);
-        return;
-    }
-
-    if (action === 'delete') {
-        deletarRegistro(registro);
-    }
-}
-
-function preencherFormularioParaEdicao(registro) {
     elementos.casoId.value = registro.id;
     elementos.cidade.value = registro.cidade;
     elementos.dataColeta.value = registro.dataColeta;
-    elementos.casos.value = registro.casos;
     elementos.populacao.value = registro.populacao;
     elementos.formTitle.textContent = `Editar registro #${registro.id}`;
     elementos.submitButton.textContent = 'Atualizar registro';
@@ -254,16 +324,13 @@ function preencherFormularioParaEdicao(registro) {
     elementos.cidade.focus();
 }
 
-async function deletarRegistro(registro) {
-    const confirmado = window.confirm(`Excluir o registro #${registro.id} de ${registro.cidade}?`);
-    if (!confirmado) {
-        return;
-    }
+async function deletarRegistro(id) {
+    if (!confirm('Tem certeza que deseja deletar este registro?')) return;
 
     try {
-        const resposta = await fetch(`${API_URL}/${registro.id}`, { method: 'DELETE' });
-        if (!resposta.ok) {
-            throw new Error(`Erro ${resposta.status} ao excluir.`);
+        const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            throw new Error('Erro HTTP: ' + response.status);
         }
 
         mostrarMensagem('Registro excluído com sucesso.', 'success');
@@ -277,33 +344,18 @@ async function deletarRegistro(registro) {
 function limparFormulario() {
     elementos.casoForm.reset();
     elementos.casoId.value = '';
-    elementos.formTitle.textContent = 'Cadastrar caso';
-    elementos.submitButton.textContent = 'Salvar registro';
-    mostrarMensagem('', '');
+    elementos.formTitle.textContent = 'Cadastrar novo caso';
+    elementos.submitButton.textContent = 'Salvar caso';
+    elementos.formMessage.textContent = '';
 }
 
-function selecionarCidade(nomeCidade, dados) {
-    elementos.cidadeSelecionada.textContent = nomeCidade;
-    elementos.casosSelecionados.textContent = formatarNumero(dados.totalCasos);
-    elementos.ultimaColeta.textContent = dados.ultimaColeta
-        ? `Última coleta: ${formatarData(dados.ultimaColeta)}`
-        : 'Sem coletas cadastradas.';
-}
-
-function atualizarRelatorios() {
-    const totalRegistros = estado.registros.length;
-    const totalCasos = estado.registros.reduce((acc, item) => acc + Number(item.casos), 0);
-    const porCidade = agruparPorCidade(estado.registros);
-    const maiorCidade = Array.from(porCidade.values()).sort((a, b) => b.totalCasos - a.totalCasos)[0];
-    const populacaoTotal = Array.from(porCidade.values()).reduce((acc, item) => acc + Number(item.populacao || 0), 0);
-    const incidenciaMedia = populacaoTotal > 0
-        ? ((totalCasos / populacaoTotal) * 100000).toFixed(2)
-        : '0.00';
-
-    elementos.relTotalRegistros.textContent = formatarNumero(totalRegistros);
-    elementos.relTotalCasos.textContent = formatarNumero(totalCasos);
-    elementos.relCidadeMaiorCasos.textContent = maiorCidade ? maiorCidade.cidade : '-';
-    elementos.relIncidenciaMedia.textContent = incidenciaMedia;
+function mostrarMensagem(mensagem, tipo) {
+    elementos.formMessage.textContent = mensagem;
+    elementos.formMessage.className = orm-message ;
+    setTimeout(() => {
+        elementos.formMessage.textContent = '';
+        elementos.formMessage.className = 'form-message';
+    }, 5000);
 }
 
 function exportarRelatorioCsv() {

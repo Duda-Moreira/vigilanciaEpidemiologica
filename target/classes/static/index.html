@@ -1,21 +1,29 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoramento de casos de dengue - Grande São Paulo</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIINfQFq7GH1m3t9N2ZVwKyeo9BefgqWZP4="
-          crossorigin="">
+    <title>Vigilância Epidemiológica - Dengue</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header class="topbar">
-        <div>
-            <span class="eyebrow">Grande São Paulo</span>
-            <h1>Monitoramento de casos de dengue</h1>
+        <div class="topbar-brand">
+            <div class="logo-container">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+            </div>
+            <div class="topbar-text">
+                <span class="eyebrow">Monitoramento</span>
+                <h1>Dengue Alert</h1>
+            </div>
         </div>
-        <div class="status-pill" id="apiStatus">Conectando API...</div>
+        <div class="status-pill" id="apiStatus">Conectando...</div>
     </header>
 
     <main class="layout">
@@ -67,6 +75,37 @@
 
                 <p id="formMessage" class="form-message" role="status"></p>
             </section>
+
+            <section class="report-box" aria-label="Relatórios de casos">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-label">Relatórios</span>
+                        <h2>Resumo rápido</h2>
+                    </div>
+                    <button type="button" class="ghost-button" id="reportRefreshButton">Atualizar relatório</button>
+                </div>
+
+                <div class="report-grid">
+                    <div class="report-card">
+                        <span>Total de registros</span>
+                        <strong id="relTotalRegistros">0</strong>
+                    </div>
+                    <div class="report-card">
+                        <span>Total de casos</span>
+                        <strong id="relTotalCasos">0</strong>
+                    </div>
+                    <div class="report-card">
+                        <span>Cidade com mais casos</span>
+                        <strong id="relCidadeMaiorCasos">-</strong>
+                    </div>
+                    <div class="report-card">
+                        <span>Incidência média</span>
+                        <strong id="relIncidenciaMedia">0,00</strong>
+                    </div>
+                </div>
+
+                <button type="button" class="primary-button" id="exportCsvButton">Exportar CSV</button>
+            </section>
         </aside>
     </main>
 
@@ -96,9 +135,7 @@
         </div>
     </section>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
