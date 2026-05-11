@@ -10,4 +10,6 @@ import java.util.List;
 public interface CasoRepository extends JpaRepository<Caso, Long> {
 
     List<Caso> findByCidade(String cidade);
+    
+    List<Caso> findByDataColeta(java.time.LocalDate dataColeta);
 }
