@@ -38,6 +38,11 @@ public class CasoService {
         return casoRepository.findByCidade(cidade);
     }
 
+    @Transactional(readOnly = true)
+    public List<Caso> buscarPorData(java.time.LocalDate data) {
+        return casoRepository.findByDataColeta(data);
+    }
+
     public Caso atualizar(Long id, Caso casoAtualizado) {
         Caso casoExistente = buscarPorId(id);
         casoExistente.setCidade(casoAtualizado.getCidade());

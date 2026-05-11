@@ -1,6 +1,7 @@
 package com.monitoramento.epidemia.controller;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -56,6 +57,17 @@ public class CasoController {
     @GetMapping("/cidade/{cidade}")
     public ResponseEntity<List<Caso>> buscarPorCidade(@PathVariable String cidade) {
         return ResponseEntity.ok(casoService.buscarPorCidade(cidade));
+    }
+
+    @GetMapping("/data/{data}")
+    public ResponseEntity<List<Caso>> buscarPorData(@PathVariable String data) {
+        try {
+            LocalDate dataColeta = LocalDate.parse(data);
+            List<Caso> casos = casoService.buscarPorData(dataColeta);
+            return ResponseEntity.ok(casos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{id}")

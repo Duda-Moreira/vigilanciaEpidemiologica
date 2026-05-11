@@ -192,6 +192,11 @@ function configurarEventos() {
     });
 
     elementos.exportButton?.addEventListener('click', exportarRelatorioPdf);
+
+    const filtroDataBtn = document.querySelector('#filtrarPorDataBtn');
+    if (filtroDataBtn) {
+        filtroDataBtn.addEventListener('click', filtrarPorData);
+    }
 }
 
 async function carregarRegistros() {
@@ -491,6 +496,41 @@ function formatarNumero(numero) {
     return new Intl.NumberFormat('pt-BR').format(numero || 0);
 }
 
+async function filtrarPorData() {
+    const filtroData = document.querySelector('#filtroData');
+    const data = filtroData.value;
+
+    if (!data) {
+        mostrarMensagem('Por favor, selecione uma data', 'error');
+        return;
+    }
+
+    definirStatusApi('Filtrando registros...', false);
+
+    try {
+        const resposta = await fetch(`${API_URL}/data/${data}`);
+        if (!resposta.ok) {
+            throw new Error(`Erro ${resposta.status} ao filtrar registros.`);
+        }
+
+        estado.registros = await resposta.json();
+        definirStatusApi('API conectada', true);
+        
+        if (estado.registros.length === 0) {
+            mostrarMensagem(`Nenhum registro encontrado para ${data}`, 'info');
+        } else {
+            mostrarMensagem(`${estado.registros.length} registro(s) encontrado(s) para ${data}`, 'success');
+        }
+        
+        renderizarMapa();
+        renderizarTabela();
+        atualizarEstatisticas();
+    } catch (erro) {
+        definirStatusApi('Erro ao conectar API', false);
+        mostrarMensagem(`Erro ao filtrar: ${erro.message}`, 'error');
+        console.error('Erro ao filtrar por data:', erro);
+    }
+}
 
 function limparFormulario() {
     elementos.casoForm.reset();

@@ -76,10 +76,6 @@ body {
     overflow-x: hidden;
 }
 
-/* ============================================
-   SIDEBAR
-   ============================================ */
-
 .sidebar {
     position: fixed;
     left: 0;
@@ -189,10 +185,6 @@ body {
     padding-bottom: 40px;
 }
 
-/* ============================================
-   HEADER
-   ============================================ */
-
 .header {
     height: 64px;
     background: var(--bg-secondary);
@@ -279,10 +271,6 @@ body {
     opacity: 1;
 }
 
-/* ============================================
-   DASHBOARD
-   ============================================ */
-
 .dashboard {
     padding: 24px;
     max-width: 1400px;
@@ -294,10 +282,6 @@ body {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
-/* ============================================
-   DASHBOARD ROW (MAPA + FORM)
-   ============================================ */
 
 .dashboard-row {
     display: grid;
@@ -689,6 +673,54 @@ body {
     height: 16px;
 }
 
+.filter-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.date-filter {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.date-filter:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 3px var(--card-highlight);
+}
+
+.filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.filter-btn:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+}
+
+.filter-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
 .table-container {
     overflow-x: auto;
 }
@@ -813,10 +845,6 @@ body {
     background: rgba(239, 68, 68, 0.1);
     border-color: #ef4444;
 }
-
-/* ============================================
-   LEAFLET CUSTOMIZATION
-   ============================================ */
 
 .leaflet-popup-content-wrapper {
     border-radius: var(--radius-md);
